@@ -1,18 +1,88 @@
-import { fetchCars } from "@utils";
-import { HomeProps } from "@types";
+"use client";
+
+import { useState, useEffect, useContext } from "react";
+import Image from "next/image";
+
+import { fetchCars,fetchPropCars } from "@utils";
 import { fuels, yearsOfProduction } from "@constants";
 import { CarCard, ShowMore, SearchBar, CustomFilter, Hero } from "@components";
+import { CarState } from "@types";
+import { SearchContext } from "@context/SearchContext";
 
-export default async function Home({ searchParams }: HomeProps) {
-  const allCars = await fetchCars({
-    manufacturer: searchParams.manufacturer || "",
-    year: searchParams.year || 2022,
-    fuel: searchParams.fuel || "",
-    limit: searchParams.limit || 10,
-    model: searchParams.model || "",
-  });
 
-  const isDataEmpty = !Array.isArray(allCars) || allCars.length < 1 || !allCars;
+export default function Home() {
+  const [allCars, setAllCars] = useState<CarState>([]);
+  const [loading, setLoading] = useState(false);
+
+  // search states
+  const [manufacturer, setManuFacturer] = useState("");
+  const [model, setModel] = useState("");
+
+  // filter state
+  const [fuel, setFuel] = useState("");
+  const [year, setYear] = useState(2022);
+
+ 
+
+
+  // limit state
+  const [limit, setLimit] = useState(10);
+
+  const {state,dispatch}=useContext(SearchContext)
+  console.log(state)
+  
+  const getCars = async () => {
+    setLoading(true);
+    try {
+      var result
+      
+        result = await fetchCars({
+          manufacturer: manufacturer.toLowerCase() || "",
+          model: model.toLowerCase() || "",
+          fuel: fuel.toLowerCase() || "",
+          year: year || 2022,
+          limit: limit || 10,
+        });
+        
+      
+        setAllCars(result);
+    } catch {
+      console.error();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if(state.key!==undefined){
+     getCarsByProperty() 
+    }
+    else{
+      getCars();
+    }
+  }, [fuel, year, limit, manufacturer, model,state]);
+
+const getCarsByProperty=async()=>{
+  setLoading(true)
+  try {
+    var result
+    
+      result = await fetchPropCars({
+        key:state.key,
+        value:state.value,
+      },limit||10);
+      
+    
+      setAllCars(result);
+  } catch {
+    console.error();
+  } finally {
+    setLoading(false);
+  }
+}
+  
+ 
+
 
   return (
     <main className='overflow-hidden'>
@@ -25,32 +95,47 @@ export default async function Home({ searchParams }: HomeProps) {
         </div>
 
         <div className='home__filters'>
-          <SearchBar />
+          <SearchBar setManuFacturer={setManuFacturer} setModel={setModel} />
 
           <div className='home__filter-container'>
-            <CustomFilter title='fuel' options={fuels} />
-            <CustomFilter title='year' options={yearsOfProduction} />
+            <CustomFilter options={fuels} setFilter={setFuel} />
+            <CustomFilter options={yearsOfProduction} setFilter={setYear} />
           </div>
         </div>
 
-        {!isDataEmpty ? (
+        {allCars.length > 0 ? (
           <section>
             <div className='home__cars-wrapper'>
-              {allCars?.map((car) => (
-                <CarCard car={car} />
+              {allCars?.map((car, index) => (
+                <CarCard key={`car-${index}`} car={car} />
               ))}
             </div>
 
+            {loading && (
+              <div className='mt-16 w-full flex-center'>
+                <Image
+                  src='./loader.svg'
+                  alt='loader'
+                  width={50}
+                  height={50}
+                  className='object-contain'
+                />
+              </div>
+            )}
+
             <ShowMore
-              pageNumber={(searchParams.limit || 10) / 10}
-              isNext={(searchParams.limit || 10) > allCars.length}
+              pageNumber={limit / 10}
+              isNext={limit > allCars.length}
+              setLimit={setLimit}
             />
           </section>
         ) : (
-          <div className='home__error-container'>
-            <h2 className='text-black text-xl font-bold'>Oops, no results</h2>
-            <p>{allCars?.message}</p>
-          </div>
+          !loading && (
+            <div className='home__error-container'>
+              <h2 className='text-black text-xl font-bold'>Oops, no results</h2>
+              <p>{allCars?.message}</p>
+            </div>
+          )
         )}
       </div>
     </main>

@@ -1,4 +1,4 @@
-import { CarProps, FilterProps } from "@types";
+import { CarProps, FilterProps, SearchProps } from "@types";
 
 export const calculateCarRent = (city_mpg: number, year: number) => {
   const basePricePerDay = 50; // Base rental price per day in dollars
@@ -78,3 +78,29 @@ export const generateCarImageUrl = (car: CarProps, angle?: string) => {
 
   return `${url}`;
 } 
+
+export async function fetchPropCars(property:SearchProps,limit: any) {
+  const {key,value} = property;
+
+  // Set the required headers for the API request
+  const headers: HeadersInit = {
+    "X-RapidAPI-Key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
+    "X-RapidAPI-Host": "cars-by-api-ninjas.p.rapidapi.com",
+  };
+
+  // Set the required headers for the API request
+  const url=`https://cars-by-api-ninjas.p.rapidapi.com/v1/cars?${key}=${value}&limit=${limit}`
+  console.log(url)
+  const response = await fetch(
+    url,
+    {
+      headers: headers,
+    }
+  );
+
+  // Parse the response as JSON
+  const result = await response.json();
+
+    console.log(result)
+  return result;
+}
