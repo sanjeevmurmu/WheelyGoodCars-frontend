@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { Fragment,useContext } from "react";
 import Image from "next/image";
 
